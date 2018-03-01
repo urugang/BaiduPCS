@@ -299,6 +299,7 @@ struct UploadThreadState {
 };
 
 static const char *app_name = NULL;
+static int quiet = 1;
 
 /*
 * 检查是否登录
@@ -1615,6 +1616,7 @@ static void print_filelist_head(int size_width, int md5, int thumb)
 /*打印文件列表的数据行*/
 static void print_filelist_row(PcsFileInfo *f, int size_width, int md5, int thumb)
 {
+  if (!quiet) {
 	const char *p;
 
 	if (f->isdir)
@@ -1641,7 +1643,10 @@ static void print_filelist_row(PcsFileInfo *f, int size_width, int md5, int thum
     if (thumb && f->thumbs) {
         printf("  %s", f->thumbs->string2);
     }
+
     putchar('\n');
+  }
+	printf("%s\n", f->path);
 }
 
 /*打印文件列表*/
@@ -1673,13 +1678,17 @@ static void print_filelist(PcsFileInfoList *list, int *pFileCount, int *pDirCoun
 
 	if (size_width < 4)
 		size_width = 4;
+    if (!quiet) {
 	print_filelist_head(size_width, md5, thumb);
 	puts("------------------------------------------------------------------------------");
+    }
 	pcs_filist_iterater_init(list, &iterater, PcsFalse);
+
 	while (pcs_filist_iterater_next(&iterater)) {
 		file = iterater.current;
 		print_filelist_row(file, size_width, md5, thumb);
 	}
+    if (!quiet) {
 	puts("------------------------------------------------------------------------------");
 	pcs_utils_readable_size((double)total, tmp, 63, NULL);
 	tmp[63] = '\0';
@@ -3245,6 +3254,7 @@ static int rb_print_meta(void *a, void *state)
 	}
 	else if (s->page_enable && s->page_size > 0 && (s->printed_count % s->page_size) == 0) {
 		s->page_index++;
+        if (!quiet) {
 		printf("\nPrint next page #%d?\n"
 			   "  yes - Continue print\n"
 			   "  no  - Abort print\n"
@@ -3259,6 +3269,8 @@ static int rb_print_meta(void *a, void *state)
 		}
 		printf("\n%sPAGE #%d\n", s->prefixion ? s->prefixion : "", s->page_index);
 		print_meta_list_head(s->first, s->second, s->other);
+        }
+		s->page_enable = 0;
 	}
 
 	if (s->process)
@@ -5917,21 +5929,26 @@ static int cmd_list(ShellContext *context, struct args *arg)
 			}
 			break;
 		}
-		printf("PAGE#%d\n", page_index);
+		if (!quiet) {
+          printf("PAGE#%d\n", page_index);
+        }
 		print_filelist(list, &fileCount, &dirCount, &totalSize, md5, thumb);
 		if (list->count < context->list_page_size) {
 			pcs_filist_destroy(list);
 			break;
 		}
 		pcs_filist_destroy(list);
-		printf("Print next page#%d [Y|N]? ", page_index + 1);
-		std_string(tmp, 10);
-		//printf("[%s] %d\n", tmp, strlen(tmp));
-		if (strlen(tmp) != 0 && pcs_utils_strcmpi(tmp, "y") && pcs_utils_strcmpi(tmp, "yes")) {
+        if (!quiet) {
+          printf("Print next page#%d [Y|N]? ", page_index + 1);
+          std_string(tmp, 10);
+          //printf("[%s] %d\n", tmp, strlen(tmp));
+          if (strlen(tmp) != 0 && pcs_utils_strcmpi(tmp, "y") && pcs_utils_strcmpi(tmp, "yes")) {
 			break;
-		}
+          }
+        }
 		page_index++;
 	}
+    if (!quiet) {
 	if (page_index > 1) {
 		puts("\n------------------------------------------------------------------------------");
 		pcs_utils_readable_size((double)totalSize, tmp, 63, NULL);
@@ -5939,6 +5956,7 @@ static int cmd_list(ShellContext *context, struct args *arg)
 		printf("Total Page: %d, Total Size: %s, File Count: %d, Directory Count: %d\n", page_index, tmp, fileCount, dirCount);
 	}
 	putchar('\n');
+    }
 	pcs_free(path);
 	return 0;
 }
@@ -6490,7 +6508,9 @@ static int cmd_search(ShellContext *context, struct args *arg)
 			pcs_free(path);
 			return -1;
 		}
-		print_filelist_head(4, md5, thumb);
+		if (!quiet) {
+          print_filelist_head(4, md5, thumb);
+        }
 		pcs_free(path);
 		return 1;
 	}

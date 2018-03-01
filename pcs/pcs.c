@@ -879,6 +879,7 @@ static PcsPanApiRes *pcs_pan_api_filemanager(Pcs handle, const char *opera, cons
 			break;
 		case -8: //D:文件已存在于目标文件夹中
 			err_target_not_exist = PcsTrue;
+			printf("%s - %s\n", ri->info.path, "文件已存在于目标文件夹中");
 			break;
 		case -9: //C:文件不存在
 			err_src_file_not_exist = PcsTrue;
